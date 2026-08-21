@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepoAudit — Internship Project Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D1117;
+    --bg-alt:#11161D;
+    --panel:#161B22;
+    --fg:#E6EDF3;
+    --muted:#8B949E;
+    --border:#21262D;
+    --green:#3FB950;
+    --red:#F85149;
+    --amber:#D29922;
+    --blue:#58A6DE;
+    --purple:#A371F7;
+    --gutter-w:64px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:'Space Grotesk', sans-serif;
+    overflow-x:hidden;
+  }
+  .mono{font-family:'JetBrains Mono', monospace;}
+
+  ::selection{background:var(--green); color:#04120a;}
+
+  /* ---------- fixed chrome ---------- */
+  .topbar{
+    position:fixed; top:0; left:0; right:0; height:44px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 20px 0 calc(var(--gutter-w) + 16px);
+    background:rgba(13,17,23,0.85);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    z-index:50;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .topbar .path{display:flex; align-items:center; gap:8px;}
+  .topbar .dot{width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.35;}}
+
+  .gutter{
+    position:fixed; top:0; left:0; bottom:0; width:var(--gutter-w);
+    border-right:1px solid var(--border);
+    background:var(--bg-alt);
+    z-index:60;
+    display:flex; flex-direction:column; align-items:center;
+    justify-content:center;
+    gap:4px;
+  }
+  .gutter a{
+    width:100%; text-align:center; padding:10px 0;
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:var(--muted); text-decoration:none;
+    border-left:2px solid transparent;
+    transition:color .2s, border-color .2s, background .2s;
+  }
+  .gutter a:hover, .gutter a.active{
+    color:var(--green); border-left-color:var(--green); background:rgba(63,185,80,0.07);
+  }
+
+  main{margin-left:var(--gutter-w);}
+
+  section{
+    min-height:100vh;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:100px 8vw 70px 8vw;
+    border-bottom:1px solid var(--border);
+    position:relative;
+    scroll-margin-top:0;
+  }
+  section .label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--green); margin-bottom:18px; display:flex; align-items:center; gap:10px;
+  }
+  section .label::before{content:"//"; color:var(--muted);}
+
+  h1{font-size:clamp(2.4rem, 5vw, 4.4rem); font-weight:700; line-height:1.05; letter-spacing:-0.02em;}
+  h2{font-size:clamp(1.9rem, 3.4vw, 3rem); font-weight:700; letter-spacing:-0.01em; margin-bottom:22px;}
+  p.lead{font-size:clamp(1rem, 1.3vw, 1.25rem); color:var(--muted); max-width:760px; line-height:1.7;}
+
+  /* ---------- slide 0 : cover ---------- */
+  #s0{justify-content:center;}
+  .cover-meta{font-family:'JetBrains Mono', monospace; color:var(--muted); font-size:13px; margin-bottom:26px; display:flex; gap:18px; align-items:center;}
+  .cover-meta .tag{border:1px solid var(--border); padding:3px 10px; border-radius:20px; color:var(--amber);}
+  .cover-title{font-size:clamp(2.6rem, 7vw, 5.6rem); font-weight:700; letter-spacing:-0.03em; line-height:0.98;}
+  .cover-title .accent{color:var(--green);}
+  .cover-sub{margin-top:20px; font-size:clamp(1.05rem,1.6vw,1.4rem); color:var(--muted); max-width:640px;}
+  .terminal{
+    margin-top:44px; max-width:640px;
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    overflow:hidden; box-shadow:0 20px 60px -20px rgba(0,0,0,.6);
+  }
+  .terminal .bar{display:flex; gap:7px; padding:10px 14px; border-bottom:1px solid var(--border);}
+  .terminal .bar span{width:10px; height:10px; border-radius:50%;}
+  .terminal .bar span:nth-child(1){background:#F85149;}
+  .terminal .bar span:nth-child(2){background:#D29922;}
+  .terminal .bar span:nth-child(3){background:#3FB950;}
+  .terminal .body{padding:18px 20px; font-family:'JetBrains Mono', monospace; font-size:14px; line-height:1.9;}
+  .terminal .body .type{color:var(--fg); border-right:2px solid var(--green); white-space:nowrap; overflow:hidden; animation:type 3.2s steps(46,end) 1 both, blink .8s step-end infinite;}
+  .terminal .body .out{color:var(--muted); opacity:0; animation:fadein .4s ease 3.3s both;}
+  .terminal .body .ok{color:var(--green);}
+  @keyframes type{from{width:0} to{width:46ch}}
+  @keyframes blink{50%{border-color:transparent}}
+  @keyframes fadein{to{opacity:1}}
+  @media (prefers-reduced-motion: reduce){
+    .terminal .body .type{animation:none; width:46ch; border-right:none;}
+    .terminal .body .out{animation:none; opacity:1;}
+    .dot{animation:none;}
+  }
+  .scroll-cue{position:absolute; bottom:36px; left:8vw; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); display:flex; align-items:center; gap:8px;}
+  .scroll-cue .arrow{animation:down 1.6s ease-in-out infinite;}
+  @keyframes down{0%,100%{transform:translateY(0);}50%{transform:translateY(5px);}}
+
+  /* ---------- problem statement ---------- */
+  .comment-block{
+    background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--purple);
+    border-radius:6px; padding:28px 30px; max-width:840px; margin-top:6px;
+  }
+  .comment-block p{color:var(--fg); font-size:1.05rem; line-height:1.85;}
+  .comment-block p + p{margin-top:16px;}
+  .comment-block .c1{color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:.85rem; display:block; margin-bottom:14px;}
+  .comment-block strong{color:var(--green); font-weight:600;}
+
+  /* ---------- mission ---------- */
+  .objectives{margin-top:30px; max-width:820px; display:flex; flex-direction:column; gap:0;}
+  .objectives li{
+    list-style:none; display:flex; gap:16px; padding:16px 0; border-top:1px solid var(--border);
+    align-items:flex-start;
+  }
+  .objectives li:last-child{border-bottom:1px solid var(--border);}
+  .objectives .idx{font-family:'JetBrains Mono',monospace; color:var(--green); font-size:.85rem; padding-top:2px;}
+  .objectives .txt strong{display:block; font-size:1.02rem; margin-bottom:3px;}
+  .objectives .txt span{color:var(--muted); font-size:.94rem; line-height:1.6;}
+
+  /* ---------- pillars grid ---------- */
+  .pillars{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-top:34px;}
+  .pillar{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:22px 18px;
+    display:flex; flex-direction:column; gap:12px; min-height:260px;
+    transition:transform .2s, border-color .2s;
+  }
+  .pillar:hover{transform:translateY(-4px); border-color:var(--accent-c, var(--green));}
+  .pillar .tag{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted);}
+  .pillar h3{font-size:1.02rem; font-weight:600; line-height:1.3;}
+  .pillar p{font-size:.85rem; color:var(--muted); line-height:1.55; flex:1;}
+  .pillar .swatch{width:26px; height:4px; border-radius:2px;}
+  .p1 .swatch{background:var(--purple);} .p1:hover{--accent-c:var(--purple);}
+  .p2 .swatch{background:var(--blue);}   .p2:hover{--accent-c:var(--blue);}
+  .p3 .swatch{background:var(--red);}    .p3:hover{--accent-c:var(--red);}
+  .p4 .swatch{background:var(--amber);}  .p4:hover{--accent-c:var(--amber);}
+  .p5 .swatch{background:var(--green);}  .p5:hover{--accent-c:var(--green);}
+
+  /* ---------- pipeline ---------- */
+  .pipeline{display:flex; align-items:stretch; gap:0; margin-top:40px; max-width:1000px; flex-wrap:wrap;}
+  .stage{
+    flex:1; min-width:150px; background:var(--panel); border:1px solid var(--border);
+    border-radius:8px; padding:20px 16px; position:relative;
+  }
+  .stage + .stage{margin-left:14px;}
+  .stage .n{font-family:'JetBrains Mono',monospace; color:var(--green); font-size:12px; margin-bottom:10px;}
+  .stage h4{font-size:.98rem; margin-bottom:6px;}
+  .stage p{font-size:.82rem; color:var(--muted); line-height:1.5;}
+  .arrow-sep{align-self:center; color:var(--muted); padding:0 4px; font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- deliverables / two column ---------- */
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:30px; max-width:1000px;}
+  .twocol h4{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--blue); margin-bottom:14px; text-transform:uppercase; letter-spacing:.08em;}
+  .checklist li{list-style:none; display:flex; gap:10px; font-size:.93rem; color:var(--fg); padding:8px 0; border-top:1px solid var(--border);}
+  .checklist li::before{content:"✓"; color:var(--green); font-family:'JetBrains Mono',monospace; flex-shrink:0;}
+
+  /* ---------- stack ---------- */
+  .stack-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:30px; max-width:900px;}
+  .stack-row{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:14px 18px;
+  }
+  .stack-row .k{font-family:'JetBrains Mono',monospace; font-size:.82rem; color:var(--muted);}
+  .stack-row .v{font-size:.92rem; font-weight:500;}
+
+  /* ---------- timeline ---------- */
+  .weeks{margin-top:34px; max-width:900px; display:flex; flex-direction:column;}
+  .week{display:grid; grid-template-columns:70px 1fr; gap:20px; padding:14px 0; border-top:1px solid var(--border); align-items:baseline;}
+  .week:last-child{border-bottom:1px solid var(--border);}
+  .week .wk{font-family:'JetBrains Mono',monospace; color:var(--amber); font-size:.85rem;}
+  .week .desc strong{font-size:.97rem;}
+  .week .desc span{display:block; color:var(--muted); font-size:.85rem; margin-top:2px;}
+
+  /* ---------- closing ---------- */
+  #s8{align-items:flex-start;}
+  .cta-box{
+    margin-top:30px; padding:30px 34px; border:1px dashed var(--border); border-radius:10px; max-width:700px;
+    background:linear-gradient(160deg, rgba(63,185,80,0.06), transparent);
+  }
+  .cta-box p{color:var(--muted); line-height:1.7; font-size:.98rem;}
+  .diffline{font-family:'JetBrains Mono',monospace; font-size:.85rem; margin-top:18px;}
+  .diffline .add{color:var(--green);} .diffline .rm{color:var(--red);}
+
+  @media (max-width:900px){
+    :root{--gutter-w:40px;}
+    .pillars{grid-template-columns:1fr 1fr;}
+    .twocol{grid-template-columns:1fr;}
+    .stack-grid{grid-template-columns:1fr;}
+    .pipeline{flex-direction:column;}
+    .stage + .stage{margin-left:0; margin-top:14px;}
+    section{padding:90px 6vw 50px 6vw;}
+  }
+  @media (max-width:600px){
+    .pillars{grid-template-columns:1fr;}
+    .gutter a{font-size:9px; padding:8px 0;}
+  }
+
+  a:focus-visible, .gutter a:focus-visible{outline:2px solid var(--green); outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<div class="gutter" aria-label="Slide navigation">
+  <a href="#s0" data-i="0">00</a>
+  <a href="#s1" data-i="1">01</a>
+  <a href="#s2" data-i="2">02</a>
+  <a href="#s3" data-i="3">03</a>
+  <a href="#s4" data-i="4">04</a>
+  <a href="#s5" data-i="5">05</a>
+  <a href="#s6" data-i="6">06</a>
+  <a href="#s7" data-i="7">07</a>
+</div>
+
+<div class="topbar">
+  <div class="path"><span class="dot"></span> repo-audit-platform / brief.md</div>
+  <div>INTERNSHIP · v1.0</div>
+</div>
+
+<main>
+
+  <!-- 00 COVER -->
+  <section id="s0">
+    <div class="cover-meta">
+      <span class="tag">INTERNSHIP PROJECT</span>
+      <span>engineering · applied AI</span>
+    </div>
+    <div class="cover-title">Repo<span class="accent">Audit</span></div>
+    <p class="cover-sub">An automated review platform that takes any public GitHub repository and returns a structured verdict on its semantics, code quality, security, documentation, and production-readiness.</p>
+    <div class="terminal">
+      <div class="bar"><span></span><span></span><span></span></div>
+      <div class="body">
+        <div><span class="mono" style="color:var(--muted)">$</span> <span class="type">repo-audit review github.com/user/project</span></div>
+        <div class="out">→ cloning… analyzing… <span class="ok">5/5 checks complete</span></div>
+      </div>
+    </div>
+    <div class="scroll-cue"><span>scroll to begin</span><span class="arrow">↓</span></div>
+  </section>
+
+  <!-- 01 PROBLEM STATEMENT -->
+  <section id="s1">
+    <div class="label">Problem Statement</div>
+    <h2>Reviewing a repo by hand doesn't scale.</h2>
+    <div class="comment-block">
+      <span class="c1">/* why this project exists */</span>
+      <p>Engineers evaluate unfamiliar GitHub repositories every day — before adopting a library, reviewing a contribution, or auditing an internal service. Today that evaluation is manual, slow, and inconsistent: someone skims the README, greps for obvious red flags, and forms a judgment on gut feel.</p>
+      <p>There is no single tool that takes a <strong>public GitHub repository URL</strong> and returns a structured, evidence-backed report covering what the codebase does, how well it's built, how secure it is, how well it's documented, and whether it's actually ready for production use.</p>
+      <p>The intern's task is to design and build exactly that platform: <strong>paste a repo link in, get a structured review out.</strong></p>
+    </div>
+  </section>
+
+  <!-- 02 MISSION -->
+  <section id="s2">
+    <div class="label">The Mission</div>
+    <h2>Build a platform that reviews any public repo, automatically.</h2>
+    <p class="lead">A user submits a GitHub URL. The platform fetches the repository and runs it through five analysis pillars, then presents the findings as a clear, navigable report — no manual digging required.</p>
+    <ul class="objectives">
+      <li><span class="idx mono">01</span><div class="txt"><strong>Accept a public GitHub URL</strong><span>Validate the link, resolve the default branch, and fetch repo metadata via the GitHub API.</span></div></li>
+      <li><span class="idx mono">02</span><div class="txt"><strong>Pull the source</strong><span>Clone or fetch the repository contents into an isolated analysis environment.</span></div></li>
+      <li><span class="idx mono">03</span><div class="txt"><strong>Run the five-pillar review</strong><span>Semantic analysis, code evaluation, security, documentation, and production-readiness — each producing findings and a score.</span></div></li>
+      <li><span class="idx mono">04</span><div class="txt"><strong>Present a structured report</strong><span>One dashboard per repo: overall verdict, category scores, and specific, actionable findings.</span></div></li>
+    </ul>
+  </section>
+
+  <!-- 03 FIVE PILLARS -->
+  <section id="s3">
+    <div class="label">What Gets Reviewed</div>
+    <h2>Five pillars, one verdict.</h2>
+    <div class="pillars">
+      <div class="pillar p1">
+        <div class="swatch"></div>
+        <div class="tag">PILLAR 01</div>
+        <h3>Semantic Analysis</h3>
+        <p>What does this code actually do? Infer purpose, architecture, module boundaries, and key dependencies between components.</p>
+      </div>
+      <div class="pillar p2">
+        <div class="swatch"></div>
+        <div class="tag">PILLAR 02</div>
+        <h3>Code Evaluation</h3>
+        <p>Quality, complexity, duplication, code smells, test coverage, and adherence to language-idiomatic conventions.</p>
+      </div>
+      <div class="pillar p3">
+        <div class="swatch"></div>
+        <div class="tag">PILLAR 03</div>
+        <h3>Security</h3>
+        <p>Known-vulnerable dependencies, hardcoded secrets, unsafe patterns, and exposed attack surface.</p>
+      </div>
+      <div class="pillar p4">
+        <div class="swatch"></div>
+        <div class="tag">PILLAR 04</div>
+        <h3>Documentation</h3>
+        <p>README quality, setup instructions, inline comments, and coverage of public APIs and interfaces.</p>
+      </div>
+      <div class="pillar p5">
+        <div class="swatch"></div>
+        <div class="tag">PILLAR 05</div>
+        <h3>Production Readiness</h3>
+        <p>CI/CD presence, error handling, logging, licensing, and overall shippability of the codebase.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 PIPELINE -->
+  <section id="s4">
+    <div class="label">How It Works</div>
+    <h2>From URL to verdict.</h2>
+    <div class="pipeline">
+      <div class="stage"><div class="n mono">01</div><h4>Submit</h4><p>User pastes a public GitHub repo URL into the platform.</p></div>
+      <div class="stage"><div class="n mono">02</div><h4>Fetch</h4><p>Repo is cloned and metadata is pulled from the GitHub API.</p></div>
+      <div class="stage"><div class="n mono">03</div><h4>Analyze</h4><p>Static tools + AI-assisted analysis run across all five pillars.</p></div>
+      <div class="stage"><div class="n mono">04</div><h4>Score</h4><p>Each pillar produces findings and a normalized score.</p></div>
+      <div class="stage"><div class="n mono">05</div><h4>Report</h4><p>Results render as a structured, shareable dashboard.</p></div>
+    </div>
+  </section>
+
+  <!-- 05 DELIVERABLES -->
+  <section id="s5">
+    <div class="label">Deliverables & Success Criteria</div>
+    <h2>What "done" looks like.</h2>
+    <div class="twocol">
+      <div>
+        <h4>Deliverables</h4>
+        <ul class="checklist">
+          <li>A working web app with a single input field for a GitHub URL</li>
+          <li>A backend pipeline that fetches and analyzes any public repo</li>
+          <li>A report UI showing all five pillars with scores and findings</li>
+          <li>An overall production-readiness verdict per repo</li>
+          <li>Exportable / shareable report output</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Success Criteria</h4>
+        <ul class="checklist">
+          <li>Works on any valid public GitHub repository URL</li>
+          <li>Returns a complete report within a reasonable time budget</li>
+          <li>Findings are specific — not generic pass/fail labels</li>
+          <li>Handles large, small, and malformed repos gracefully</li>
+          <li>Report is understandable to a non-author reviewer</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 STACK -->
+  <section id="s6">
+    <div class="label">Suggested Tech Stack</div>
+    <h2>Starting points, not requirements.</h2>
+    <p class="lead" style="margin-bottom:6px;">Build and test locally first, then mirror the same pieces onto AWS for a deployed, always-on version.</p>
+    <div class="stack-grid">
+      <div class="stack-row"><span class="k">FRONTEND</span><span class="v">React / Next.js</span></div>
+      <div class="stack-row"><span class="k">BACKEND</span><span class="v">Node.js or Python (FastAPI)</span></div>
+      <div class="stack-row"><span class="k">REPO ACCESS</span><span class="v">GitHub REST/GraphQL API + git clone</span></div>
+      <div class="stack-row"><span class="k">CODE EVALUATION</span><span class="v">ESLint, Pylint, complexity linters</span></div>
+      <div class="stack-row"><span class="k">SECURITY SCANNING</span><span class="v">Trivy, npm audit, Bandit, Semgrep</span></div>
+      <div class="stack-row"><span class="k">SEMANTIC ANALYSIS</span><span class="v">LLM-based code understanding (Claude API)</span></div>
+      <div class="stack-row"><span class="k">DOCS SCORING</span><span class="v">Heuristic README / docstring coverage checks</span></div>
+      <div class="stack-row"><span class="k">STORAGE</span><span class="v">PostgreSQL for reports + repo metadata</span></div>
+    </div>
+
+    <h4 style="margin-top:36px;">Local vs. AWS Deployment</h4>
+    <div class="stack-grid">
+      <div class="stack-row"><span class="k">LOCAL DEV</span><span class="v">Docker Compose — app, DB & analyzers on one machine</span></div>
+      <div class="stack-row"><span class="k">AWS COMPUTE</span><span class="v">ECS / Fargate (or EC2) to run the app + analysis workers</span></div>
+      <div class="stack-row"><span class="k">AWS REPO ANALYSIS JOBS</span><span class="v">AWS Lambda / Batch for on-demand clone-and-scan tasks</span></div>
+      <div class="stack-row"><span class="k">AWS STORAGE</span><span class="v">RDS (PostgreSQL) for reports + S3 for cloned repo artifacts</span></div>
+      <div class="stack-row"><span class="k">AWS SECRETS</span><span class="v">Secrets Manager for GitHub tokens & API keys</span></div>
+      <div class="stack-row"><span class="k">AWS DELIVERY</span><span class="v">API Gateway + CloudFront for the frontend/API endpoints</span></div>
+    </div>
+  </section>
+
+  <!-- 07 CLOSING -->
+  <section id="s7">
+    <div class="label">Next Step</div>
+    <h2>Pick a repo. Start with one pillar.</h2>
+    <div class="cta-box">
+      <p>Don't try to build all five pillars at once. Start with a working end-to-end path for <strong style="color:var(--fg)">one</strong> pillar — code evaluation is usually the easiest first slice — then widen. A thin, working pipeline beats five half-built analyzers.</p>
+      <div class="diffline">
+        <div><span class="rm">- manual, ad-hoc repo review</span></div>
+        <div><span class="add">+ repo-audit review &lt;url&gt; → structured verdict</span></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  const links = document.querySelectorAll('.gutter a');
+  const sections = document.querySelectorAll('main section');
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        links.forEach(l=>l.classList.remove('active'));
+        const i = [...sections].indexOf(e.target);
+        if(links[i]) links[i].classList.add('active');
+      }
+    });
+  }, {threshold:0.5});
+  sections.forEach(s=>obs.observe(s));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+# Install system utilities and Git
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    nodejs \
+    npm \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node static analysis tools (ESLint)
+RUN npm install -g eslint
+
+WORKDIR /app
+
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . /app/
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

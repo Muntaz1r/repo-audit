@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RepoAudit — Automated Public Repository Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+<header>
+  <div class="brand" onclick="app.showView('input')">
+    <span class="brand-dot"></span>
+    Repo<span style="color:var(--green)">Audit</span>
+  </div>
+  <div class="nav-links">
+    <span class="mono" style="font-size:12px; color:var(--text-muted)">v1.0 · MVP Thin Slice</span>
+    <a href="https://github.com" target="_blank" style="color:var(--text-muted); text-decoration:none;">GitHub</a>
+  </div>
+</header>
+
+<main>
+
+  <!-- VIEW 1: HERO INPUT -->
+  <section id="view-input">
+    <div class="hero-tag mono"><span>⚡</span> 5-PILLAR REPOSITORY AUDITOR</div>
+    <h1 class="hero-title">Paste a GitHub repo URL.<br>Get an <span>evidence-based verdict</span>.</h1>
+    <p class="hero-desc">Automated static code evaluation, complexity analysis, test health, and architectural review for non-author reviewers.</p>
+
+    <div class="input-group">
+      <input type="text" id="repo-url-input" placeholder="https://github.com/owner/repository" value="https://github.com/expressjs/express" spellcheck="false" autocomplete="off">
+      <button class="btn-primary" id="btn-audit" onclick="app.submitAudit()">Audit Repository ↵</button>
+    </div>
+
+    <div class="error-banner" id="input-error"></div>
+
+    <div class="quick-chips">
+      <span>Try sample repo:</span>
+      <span class="chip" onclick="app.setSampleRepo('https://github.com/expressjs/express')">expressjs/express</span>
+      <span class="chip" onclick="app.setSampleRepo('https://github.com/pallets/flask')">pallets/flask</span>
+      <span class="chip" onclick="app.setSampleRepo('https://github.com/psf/requests')">psf/requests</span>
+    </div>
+  </section>
+
+  <!-- VIEW 2: PIPELINE LOADING TELEMETRY -->
+  <section id="view-loading">
+    <div class="loading-card">
+      <div class="loading-bar-head">
+        <div class="window-dots"><span></span><span></span><span></span></div>
+        <div class="mono" id="loading-job-id" style="font-size:12px; color:var(--text-muted)">pipeline-job #loading...</div>
+      </div>
+      <div class="loading-body">
+        <div class="pipeline-steps">
+          <div class="p-step active" id="step-metadata">
+            <div class="step-icon">1</div>
+            <div>
+              <div style="font-weight:600">Resolving Repository Metadata</div>
+              <div class="mono" id="step-meta-desc" style="font-size:12px; color:var(--text-muted)">Validating GitHub API accessibility & size constraints...</div>
+            </div>
+          </div>
+          <div class="p-step" id="step-clone">
+            <div class="step-icon">2</div>
+            <div>
+              <div style="font-weight:600">Sandboxed Shallow Clone</div>
+              <div class="mono" id="step-clone-desc" style="font-size:12px; color:var(--text-muted)">Fetching repository into ephemeral /tmp workspace (--depth 1)...</div>
+            </div>
+          </div>
+          <div class="p-step" id="step-analyze">
+            <div class="step-icon">3</div>
+            <div>
+              <div style="font-weight:600">Running Pillar 02: Code Evaluation Engine</div>
+              <div class="mono" id="step-analyze-desc" style="font-size:12px; color:var(--text-muted)">Calculating cyclomatic complexity, maintainability & AST code smells...</div>
+            </div>
+          </div>
+          <div class="p-step" id="step-verdict">
+            <div class="step-icon">4</div>
+            <div>
+              <div style="font-weight:600">Synthesizing Final Verdict</div>
+              <div class="mono" id="step-verdict-desc" style="font-size:12px; color:var(--text-muted)">Aggregating findings and compiling structured report card...</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="loading-error" class="error-banner" style="margin-top:24px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW 3: REPORT DASHBOARD -->
+  <section id="view-report">
+    <!-- Header -->
+    <div class="report-header">
+      <div>
+        <div class="repo-title-row">
+          <h2 class="repo-title" id="report-repo-name">owner/repo</h2>
+          <span class="repo-branch mono" id="report-branch">main</span>
+          <span class="mono" id="report-stars" style="color:var(--text-muted); font-size:13px;">⭐ 0</span>
+        </div>
+        <div class="mono" id="report-meta-sub" style="color:var(--text-muted); font-size:13px; margin-top:6px;">Audited just now</div>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-outline" onclick="app.exportReport('markdown')">📥 Markdown</button>
+        <button class="btn-outline" onclick="app.exportReport('json')">📥 JSON</button>
+        <button class="btn-outline" onclick="app.copyShareLink()">🔗 Copy Link</button>
+        <button class="btn-outline" onclick="app.showView('input')">🔄 New Audit</button>
+      </div>
+    </div>
+
+    <!-- Verdict Hero -->
+    <div class="verdict-hero">
+      <div class="gauge-box">
+        <div class="gauge-ring" id="gauge-ring-el">
+          <span class="gauge-score mono" id="report-score">--</span>
+          <span class="gauge-grade mono" id="report-grade">GRADE --</span>
+        </div>
+      </div>
+      <div class="verdict-text">
+        <div class="verdict-badge" id="report-verdict-badge">✓ PRODUCTION READY</div>
+        <h3 id="report-verdict-title">Reviewer Executive Summary</h3>
+        <p class="verdict-summary" id="report-verdict-summary">Loading analysis summary...</p>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="metrics-strip">
+      <div class="metric-card">
+        <div class="metric-label">Total Code Size</div>
+        <div class="metric-val mono" id="metric-loc">0 <span style="font-size:14px; font-weight:400; color:var(--text-muted)">LOC</span></div>
+        <div class="metric-sub" id="metric-files">0 source files</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Test-to-Source Ratio</div>
+        <div class="metric-val mono" id="metric-test-ratio">0 : 1</div>
+        <div class="metric-sub" id="metric-test-sub">0 test files detected</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avg Cyclomatic Complexity</div>
+        <div class="metric-val mono" id="metric-complexity">0.0</div>
+        <div class="metric-sub">Threshold: &lt; 10 (Low risk)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Maintainability Index</div>
+        <div class="metric-val mono" id="metric-maintainability">0 / 100</div>
+        <div class="metric-sub">AST maintainability score</div>
+      </div>
+    </div>
+
+    <!-- 5 Pillars Strip -->
+    <div class="pillars-section-title">5-Pillar Scorecard</div>
+    <div class="pillars-nav" id="pillars-nav-list">
+      <!-- Injected by JS -->
+    </div>
+
+    <!-- Semantic Architecture Explorer (Visible when Pillar 01 is selected) -->
+    <div class="semantic-container" id="semantic-architecture-view" style="display:none;">
+      <!-- Rendered dynamically by JS -->
+    </div>
+
+    <!-- Security Posture Explorer (Visible when Pillar 03 is selected) -->
+    <div class="security-container" id="security-architecture-view" style="display:none;">
+      <!-- Rendered dynamically by JS -->
+    </div>
+
+    <!-- Documentation Quality Explorer (Visible when Pillar 04 is selected) -->
+    <div class="docs-container" id="docs-architecture-view" style="display:none;">
+      <!-- Rendered dynamically by JS -->
+    </div>
+
+    <!-- Production Readiness Explorer (Visible when Pillar 05 is selected) -->
+    <div class="docs-container" id="prod-architecture-view" style="display:none;">
+      <!-- Rendered dynamically by JS -->
+    </div>
+
+    <!-- Expandable Findings -->
+    <div class="findings-container">
+      <div id="findings-section-header" style="font-weight:600; font-size:15px; color:var(--text-primary); margin-bottom:16px;">Findings for Code Evaluation</div>
+      <div class="findings-toolbar">
+        <div class="filter-pills" id="severity-filters">
+          <div class="f-pill active" data-severity="all" onclick="app.setFilter('all')">All (<span id="count-all">0</span>)</div>
+          <div class="f-pill" data-severity="critical" onclick="app.setFilter('critical')">Critical (<span id="count-critical">0</span>)</div>
+          <div class="f-pill" data-severity="warning" onclick="app.setFilter('warning')">Warning (<span id="count-warning">0</span>)</div>
+          <div class="f-pill" data-severity="info" onclick="app.setFilter('info')">Info (<span id="count-info">0</span>)</div>
+        </div>
+        <input type="text" id="search-findings-input" class="search-findings mono" placeholder="Filter by file or title..." oninput="app.renderFindings()">
+      </div>
+
+      <div id="findings-list">
+        <!-- Findings rendered by JS -->
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
