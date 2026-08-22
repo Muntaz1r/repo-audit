@@ -5,10 +5,14 @@ class RepoAuditApp {
     this.activeFilter = 'all';
     this.activePillar = 'code_eval';
     this.scopeFilter = 'active'; // 'active' or 'all_pillars'
+    this.tooltipEl = null;
     this.init();
   }
 
   init() {
+    this.tooltipEl = document.getElementById('global-tooltip');
+    this.initGlobalEvents();
+
     const path = window.location.pathname;
     const match = path.match(/\/report\/([a-zA-Z0-9_]+)/);
     if (match) {
@@ -27,6 +31,117 @@ class RepoAuditApp {
     }
   }
 
+  initGlobalEvents() {
+    // Global Escape Key Listener for modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeMethodologyModal();
+      }
+    });
+
+    // Global Tooltip listeners on pointer hover
+    document.addEventListener('mouseover', (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (target && this.tooltipEl) {
+        const text = target.getAttribute('data-tooltip');
+        if (text) {
+          this.tooltipEl.innerText = text;
+          this.tooltipEl.classList.add('visible');
+          this.positionTooltip(e);
+        }
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (this.tooltipEl && this.tooltipEl.classList.contains('visible')) {
+        this.positionTooltip(e);
+      }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const target = e.target.closest('[data-tooltip]');
+      if (target && this.tooltipEl) {
+        this.tooltipEl.classList.remove('visible');
+      }
+    });
+
+    // Global Tap-to-expand listener for truncated elements (Touch & Click fallback)
+    document.addEventListener('click', (e) => {
+      const expandable = e.target.closest('.tap-expandable');
+      if (expandable) {
+        // If clicking a link or interactive button inside it, don't interfere
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('.finding-header')) {
+          return;
+        }
+        expandable.classList.toggle('is-expanded');
+      }
+    });
+  }
+
+  positionTooltip(e) {
+    if (!this.tooltipEl) return;
+    const padding = 12;
+    let x = e.clientX + padding;
+    let y = e.clientY + padding;
+
+    // Check viewport edges
+    const rect = this.tooltipEl.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth - padding) {
+      x = e.clientX - rect.width - padding;
+    }
+    if (y + rect.height > window.innerHeight - padding) {
+      y = e.clientY - rect.height - padding;
+    }
+
+    this.tooltipEl.style.left = `${Math.max(padding, x)}px`;
+    this.tooltipEl.style.top = `${Math.max(padding, y)}px`;
+  }
+
+  /* ==========================================================================
+     METHODOLOGY MODAL CONTROLLERS
+     ========================================================================== */
+  openMethodologyModal() {
+    const modal = document.getElementById('methodology-modal');
+    if (modal) {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+  }
+
+  closeMethodologyModal(e) {
+    if (e && e.target && e.target.closest('.modal-dialog')) {
+      return;
+    }
+    const modal = document.getElementById('methodology-modal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+  }
+
+  switchMethodologyTab(tabId) {
+    const tabs = document.querySelectorAll('.modal-tab-btn');
+    tabs.forEach(tab => {
+      if (tab.dataset.tab === tabId) {
+        tab.classList.add('active');
+      } else {
+        tab.classList.remove('active');
+      }
+    });
+
+    const panes = document.querySelectorAll('.modal-content-area .tab-pane');
+    panes.forEach(pane => {
+      if (pane.id === `tab-${tabId}`) {
+        pane.style.display = 'block';
+      } else {
+        pane.style.display = 'none';
+      }
+    });
+  }
+
+  /* ==========================================================================
+     VIEW NAVIGATION & INGESTION
+     ========================================================================== */
   showView(viewName) {
     document.getElementById('view-input').style.display = viewName === 'input' ? 'block' : 'none';
     document.getElementById('view-loading').style.display = viewName === 'loading' ? 'block' : 'none';
@@ -36,6 +151,7 @@ class RepoAuditApp {
       window.history.pushState({}, '', '/');
       if (this.pollInterval) clearInterval(this.pollInterval);
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   setSampleRepo(url) {
@@ -84,7 +200,9 @@ class RepoAuditApp {
 
   startPolling(auditId) {
     this.showView('loading');
-    document.getElementById('loading-job-id').innerText = `pipeline-job #${auditId}`;
+    const jobEl = document.getElementById('loading-job-id');
+    jobEl.innerText = `pipeline-job #${auditId}`;
+    jobEl.setAttribute('data-tooltip', `Audit Identifier: ${auditId}`);
     document.getElementById('loading-error').style.display = 'none';
 
     this.updateLoadingSteps('QUEUED');
@@ -118,7 +236,9 @@ class RepoAuditApp {
 
   async loadAudit(auditId) {
     this.showView('loading');
-    document.getElementById('loading-job-id').innerText = `pipeline-job #${auditId}`;
+    const jobEl = document.getElementById('loading-job-id');
+    jobEl.innerText = `pipeline-job #${auditId}`;
+    jobEl.setAttribute('data-tooltip', `Audit Identifier: ${auditId}`);
 
     try {
       const response = await fetch(`/api/audits/${auditId}`);
@@ -161,13 +281,20 @@ class RepoAuditApp {
     }
   }
 
+  /* ==========================================================================
+     REPORT RENDERING & PILLARS
+     ========================================================================== */
   renderReport(audit) {
     this.showView('report');
 
     document.getElementById('btn-audit').disabled = false;
     document.getElementById('btn-audit').innerText = 'Audit Repository ↵';
 
-    document.getElementById('report-repo-name').innerText = `${audit.owner}/${audit.repo_name}`;
+    const repoFullName = `${audit.owner}/${audit.repo_name}`;
+    const repoTitleEl = document.getElementById('report-repo-name');
+    repoTitleEl.innerText = repoFullName;
+    repoTitleEl.setAttribute('data-tooltip', `Repository: ${repoFullName} (Tap to expand/copy)`);
+
     document.getElementById('report-branch').innerText = audit.default_branch || 'main';
     document.getElementById('report-stars').innerText = `⭐ ${Number(audit.stars_count || 0).toLocaleString()}`;
     document.getElementById('report-meta-sub').innerText = `Language: ${audit.primary_language || 'Various'} · Audited at ${new Date(audit.created_at).toLocaleTimeString()}`;
@@ -177,7 +304,10 @@ class RepoAuditApp {
     const grade = audit.overall_grade || 'C';
     document.getElementById('report-score').innerText = score;
     document.getElementById('report-grade').innerText = `GRADE ${grade}`;
-    document.getElementById('report-verdict-summary').innerText = audit.verdict_summary || 'Review complete.';
+    
+    const summaryEl = document.getElementById('report-verdict-summary');
+    summaryEl.innerText = audit.verdict_summary || 'Review complete.';
+    summaryEl.setAttribute('data-tooltip', 'Tap summary to expand or collapse');
 
     const badge = document.getElementById('report-verdict-badge');
     const ring = document.getElementById('gauge-ring-el');
@@ -190,6 +320,7 @@ class RepoAuditApp {
       ring.style.borderTopColor = 'var(--green)';
       ring.style.borderRightColor = 'var(--green)';
       ring.style.borderLeftColor = 'var(--green)';
+      ring.style.boxShadow = '0 0 24px var(--green-glow)';
     } else if (score >= 65) {
       badge.innerText = '⚠ NEEDS REFACTORING';
       badge.style.color = 'var(--amber)';
@@ -198,6 +329,7 @@ class RepoAuditApp {
       ring.style.borderTopColor = 'var(--amber)';
       ring.style.borderRightColor = 'var(--amber)';
       ring.style.borderLeftColor = 'var(--amber)';
+      ring.style.boxShadow = '0 0 24px var(--amber-glow)';
     } else {
       badge.innerText = '✕ HIGH RISK';
       badge.style.color = 'var(--red)';
@@ -206,6 +338,7 @@ class RepoAuditApp {
       ring.style.borderTopColor = 'var(--red)';
       ring.style.borderRightColor = 'var(--red)';
       ring.style.borderLeftColor = 'var(--red)';
+      ring.style.boxShadow = '0 0 24px var(--red-glow)';
     }
 
     // Code Eval Metrics
@@ -252,16 +385,21 @@ class RepoAuditApp {
       const meta = pillarMeta[p.pillar_key] || { num: 'PILLAR', name: p.pillar_key, badge: 'Preview' };
       const card = document.createElement('div');
       const pFindingsCount = allFindings.filter(f => f.pillar_key === p.pillar_key).length;
-      card.className = `p-card ${this.activePillar === p.pillar_key ? 'active' : ''}`;
+      card.className = `p-card ${this.activePillar === p.pillar_key ? 'active' : ''} tap-expandable`;
+      card.setAttribute('data-tooltip', `Pillar: ${meta.name} (Score: ${p.score}/100)`);
       card.onclick = () => this.selectPillar(p.pillar_key);
 
       const scoreClass = p.score >= 85 ? 'high' : (p.score >= 65 ? 'med' : '');
 
       card.innerHTML = `
-        <div class="p-card-num mono">${meta.num}</div>
-        <div class="p-card-name">${meta.name}</div>
-        <div class="p-card-score mono ${scoreClass}">${p.score} <span class="p-badge-preview">${meta.badge}</span></div>
-        <div class="mono" style="font-size:11px; color:var(--text-muted); margin-top:4px;">${pFindingsCount} finding${pFindingsCount === 1 ? '' : 's'}</div>
+        <div>
+          <div class="p-card-num mono">${meta.num}</div>
+          <div class="p-card-name">${meta.name}</div>
+        </div>
+        <div>
+          <div class="p-card-score mono ${scoreClass}">${p.score} <span class="p-badge-preview">${meta.badge}</span></div>
+          <div class="mono" style="font-size:11px; color:var(--text-muted); margin-top:4px;">${pFindingsCount} finding${pFindingsCount === 1 ? '' : 's'}</div>
+        </div>
       `;
       nav.appendChild(card);
     });
@@ -312,33 +450,33 @@ class RepoAuditApp {
         </div>
 
         <div style="margin-bottom:18px;">
-          <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Purpose & Architecture Summary</h4>
-          <p style="font-size:14px; color:var(--text-primary); line-height:1.7;">${this.escapeHtml(sm.purpose_summary || 'No purpose summary generated.')}</p>
+          <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Purpose &amp; Architecture Summary</h4>
+          <p class="tap-expandable" data-tooltip="Tap to expand full purpose summary" style="font-size:13px; color:var(--text-primary); line-height:1.7;">${this.escapeHtml(sm.purpose_summary || 'No purpose summary generated.')}</p>
         </div>
 
         ${sm.data_flow_summary ? `
         <div style="margin-bottom:18px;">
-          <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Data Flow & Execution Lifecycle</h4>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.6;">${this.escapeHtml(sm.data_flow_summary)}</p>
+          <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Data Flow &amp; Execution Lifecycle</h4>
+          <p class="tap-expandable" data-tooltip="Tap to expand full data flow details" style="font-size:13px; color:var(--text-muted); line-height:1.6;">${this.escapeHtml(sm.data_flow_summary)}</p>
         </div>` : ''}
 
         ${sm.design_patterns && sm.design_patterns.length > 0 ? `
         <div style="margin-bottom:18px;">
           <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Detected Design Patterns</h4>
           <div class="patterns-pills">
-            ${sm.design_patterns.map(dp => `<span class="pattern-pill mono">${this.escapeHtml(dp)}</span>`).join('')}
+            ${sm.design_patterns.map(dp => `<span class="pattern-pill mono tap-expandable" data-tooltip="Design Pattern: ${this.escapeHtml(dp)}">${this.escapeHtml(dp)}</span>`).join('')}
           </div>
         </div>` : ''}
 
         ${sm.key_modules && sm.key_modules.length > 0 ? `
         <div style="margin-top:20px;">
-          <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Discovered Key Modules & Topology</h4>
+          <h4 style="font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Discovered Key Modules &amp; Topology</h4>
           <div class="modules-grid">
             ${sm.key_modules.map(mod => `
               <div class="module-card">
-                <div class="module-name">${this.escapeHtml(mod.name)}</div>
-                <div class="module-path mono">${this.escapeHtml(mod.path)}</div>
-                <div class="module-purpose">${this.escapeHtml(mod.purpose)}</div>
+                <div class="module-name tap-expandable" data-tooltip="Module: ${this.escapeHtml(mod.name)}">${this.escapeHtml(mod.name)}</div>
+                <div class="module-path mono tap-expandable" data-tooltip="${this.escapeHtml(mod.path)}">${this.escapeHtml(mod.path)}</div>
+                <div class="module-purpose tap-expandable" data-tooltip="Tap to expand module description">${this.escapeHtml(mod.purpose)}</div>
               </div>
             `).join('')}
           </div>
@@ -372,17 +510,17 @@ class RepoAuditApp {
           </span>
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-top:14px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:14px;">
           <div class="module-card">
             <div class="module-name" style="color:var(--text-muted); font-size:12px; text-transform:uppercase;">Secret Scanner</div>
-            <div class="mono" style="font-size:16px; font-weight:700; color:${secClean ? 'var(--green)' : 'var(--red)'}; margin:6px 0;">
+            <div class="mono" style="font-size:15px; font-weight:700; color:${secClean ? 'var(--green)' : 'var(--red)'}; margin:6px 0;">
               ${sec.secret_scanner_status || 'CLEAN'}
             </div>
             <div style="font-size:12px; color:var(--text-muted);">Scans for AWS, GitHub, JWT, Private Keys, Slack tokens.</div>
           </div>
           <div class="module-card">
             <div class="module-name" style="color:var(--text-muted); font-size:12px; text-transform:uppercase;">Dependency Auditing</div>
-            <div class="mono" style="font-size:16px; font-weight:700; color:${vulnClean ? 'var(--green)' : 'var(--red)'}; margin:6px 0;">
+            <div class="mono" style="font-size:15px; font-weight:700; color:${vulnClean ? 'var(--green)' : 'var(--red)'}; margin:6px 0;">
               ${sec.dependency_scanner_status || 'CLEAN'}
             </div>
             <div style="font-size:12px; color:var(--text-muted);">Audits package.json, requirements.txt, go.mod for CVEs.</div>
@@ -484,24 +622,24 @@ class RepoAuditApp {
           </span>
         </div>
 
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-top:16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-top:14px;">
           <div class="module-card">
             <div class="module-name" style="color:var(--text-muted); font-size:12px; text-transform:uppercase;">CI/CD Workflows</div>
-            <div class="mono" style="font-size:15px; font-weight:700; color:${prod.has_ci_cd ? 'var(--green)' : 'var(--amber)'}; margin:6px 0;">
+            <div class="mono tap-expandable" data-tooltip="CI configuration files" style="font-size:14px; font-weight:700; color:${prod.has_ci_cd ? 'var(--green)' : 'var(--amber)'}; margin:6px 0;">
               ${ciFiles.length > 0 ? ciFiles.slice(0, 2).join('<br>') : 'No CI configured'}
             </div>
             <div style="font-size:12px; color:var(--text-muted);">Automates tests and builds on PR/push.</div>
           </div>
           <div class="module-card">
             <div class="module-name" style="color:var(--text-muted); font-size:12px; text-transform:uppercase;">Container Specs</div>
-            <div class="mono" style="font-size:15px; font-weight:700; color:${prod.has_containerization ? 'var(--green)' : 'var(--text-muted)'}; margin:6px 0;">
+            <div class="mono tap-expandable" data-tooltip="Container configuration" style="font-size:14px; font-weight:700; color:${prod.has_containerization ? 'var(--green)' : 'var(--text-muted)'}; margin:6px 0;">
               ${contFiles.length > 0 ? contFiles.join(', ') : 'None'}
             </div>
             <div style="font-size:12px; color:var(--text-muted);">Standardizes runtime and host deployment.</div>
           </div>
           <div class="module-card">
             <div class="module-name" style="color:var(--text-muted); font-size:12px; text-transform:uppercase;">Structured Logging</div>
-            <div class="mono" style="font-size:15px; font-weight:700; color:${prod.has_structured_logging ? 'var(--green)' : 'var(--text-muted)'}; margin:6px 0;">
+            <div class="mono" style="font-size:14px; font-weight:700; color:${prod.has_structured_logging ? 'var(--green)' : 'var(--text-muted)'}; margin:6px 0;">
               ${prod.has_structured_logging ? 'Structured Logging Detected' : 'Raw Console Logging'}
             </div>
             <div style="font-size:12px; color:var(--text-muted);">Production observability and error aggregation.</div>
@@ -563,16 +701,16 @@ class RepoAuditApp {
     if (filtered.length === 0) {
       if (findings.length === 0 && allFindings.length > 0 && this.scopeFilter === 'active') {
         listEl.innerHTML = `
-          <div style="text-align:center; padding:36px 20px; color:var(--text-muted); background:var(--bg-canvas); border-radius:var(--radius-md); border:1px solid var(--border);">
-            <div style="font-size:18px; margin-bottom:8px;">✓ No findings in ${activePillarName}</div>
-            <p style="font-size:13px; margin-bottom:16px;">This pillar passed without any detected risks.</p>
-            <button class="btn-outline" onclick="app.showAllPillarsFindings()" style="font-size:13px;">View all ${allFindings.length} findings in other pillars →</button>
+          <div style="text-align:center; padding:32px 18px; color:var(--text-muted); background:var(--bg-canvas); border-radius:var(--radius-md); border:1px solid var(--border);">
+            <div style="font-size:16px; font-weight:600; margin-bottom:6px; color:var(--green);">✓ No findings in ${activePillarName}</div>
+            <p style="font-size:12px; margin-bottom:14px;">This pillar passed without any detected risks.</p>
+            <button class="btn-outline" onclick="app.showAllPillarsFindings()" style="font-size:12px;">View all ${allFindings.length} findings in other pillars →</button>
           </div>
         `;
       } else {
         listEl.innerHTML = `
-          <div style="text-align:center; padding:36px; color:var(--text-muted);">
-            <div class="mono" style="font-size:14px;">No findings matched the current filter.</div>
+          <div style="text-align:center; padding:32px; color:var(--text-muted);">
+            <div class="mono" style="font-size:13px;">No findings matched the current filter.</div>
           </div>
         `;
       }
@@ -584,8 +722,8 @@ class RepoAuditApp {
         <div class="finding-header" onclick="app.toggleFinding(this)">
           <div class="finding-meta-left">
             <span class="sev-tag sev-${f.severity}">${f.severity}</span>
-            <span class="finding-title">${this.escapeHtml(f.title)}</span>
-            ${f.file_path ? `<span class="finding-file mono">${this.escapeHtml(f.file_path)}${f.line_start ? `:L${f.line_start}` : ''}</span>` : ''}
+            <span class="finding-title tap-expandable" data-tooltip="Tap to expand finding title">${this.escapeHtml(f.title)}</span>
+            ${f.file_path ? `<span class="finding-file mono tap-expandable" data-tooltip="${this.escapeHtml(f.file_path)}">${this.escapeHtml(f.file_path)}${f.line_start ? `:L${f.line_start}` : ''}</span>` : ''}
           </div>
           <div class="mono" style="color:var(--text-muted); font-size:12px;">Details ▾</div>
         </div>
@@ -593,12 +731,12 @@ class RepoAuditApp {
           <div class="finding-grid">
             <div class="f-col">
               <h4>What was found</h4>
-              <p>${this.escapeHtml(f.description)}</p>
-              ${f.impact ? `<h4 style="margin-top:14px;">Reviewer Impact</h4><p>${this.escapeHtml(f.impact)}</p>` : ''}
+              <p class="tap-expandable" data-tooltip="Tap to expand summary">${this.escapeHtml(f.description)}</p>
+              ${f.impact ? `<h4 style="margin-top:12px;">Reviewer Impact</h4><p class="tap-expandable" data-tooltip="Tap to expand impact details">${this.escapeHtml(f.impact)}</p>` : ''}
             </div>
             <div class="f-col">
-              ${f.recommendation ? `<h4>Recommended Fix</h4><p>${this.escapeHtml(f.recommendation)}</p>` : ''}
-              ${f.code_snippet ? `<div class="code-snippet mono">${this.escapeHtml(f.code_snippet)}</div>` : ''}
+              ${f.recommendation ? `<h4>Recommended Fix</h4><p class="tap-expandable" data-tooltip="Tap to expand recommendation">${this.escapeHtml(f.recommendation)}</p>` : ''}
+              ${f.code_snippet ? `<div class="code-snippet mono tap-expandable" data-tooltip="Tap to toggle code wrap">${this.escapeHtml(f.code_snippet)}</div>` : ''}
             </div>
           </div>
         </div>

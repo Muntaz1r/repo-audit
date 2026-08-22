@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
   <title>RepoAudit — Automated Public Repository Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,8 +17,11 @@
     Repo<span style="color:var(--green)">Audit</span>
   </div>
   <div class="nav-links">
-    <span class="mono" style="font-size:12px; color:var(--text-muted)">v1.0 · MVP Thin Slice</span>
-    <a href="https://github.com" target="_blank" style="color:var(--text-muted); text-decoration:none;">GitHub</a>
+    <button class="btn-info-nav mono" id="btn-header-info" onclick="app.openMethodologyModal()" aria-label="Methodology and 5-Pillars guide">
+      <span class="info-icon">ℹ️</span> <span class="info-text">Methodology</span>
+    </button>
+    <span class="mono nav-version" style="font-size:12px; color:var(--text-muted)">v1.0</span>
+    <a href="https://github.com" target="_blank" rel="noopener noreferrer" style="color:var(--text-muted); text-decoration:none;">GitHub</a>
   </div>
 </header>
 
@@ -38,10 +41,16 @@
     <div class="error-banner" id="input-error"></div>
 
     <div class="quick-chips">
-      <span>Try sample repo:</span>
-      <span class="chip" onclick="app.setSampleRepo('https://github.com/expressjs/express')">expressjs/express</span>
-      <span class="chip" onclick="app.setSampleRepo('https://github.com/pallets/flask')">pallets/flask</span>
-      <span class="chip" onclick="app.setSampleRepo('https://github.com/psf/requests')">psf/requests</span>
+      <span class="chips-label">Try sample repo:</span>
+      <span class="chip tap-expandable" data-tooltip="Audit expressjs/express" onclick="app.setSampleRepo('https://github.com/expressjs/express')">expressjs/express</span>
+      <span class="chip tap-expandable" data-tooltip="Audit pallets/flask" onclick="app.setSampleRepo('https://github.com/pallets/flask')">pallets/flask</span>
+      <span class="chip tap-expandable" data-tooltip="Audit psf/requests" onclick="app.setSampleRepo('https://github.com/psf/requests')">psf/requests</span>
+    </div>
+
+    <div class="hero-info-action">
+      <button class="hero-info-btn mono" onclick="app.openMethodologyModal()">
+        <span>ℹ️</span> How RepoAudit Works: 5 Pillars, Scoring &amp; Sources →
+      </button>
     </div>
   </section>
 
@@ -50,7 +59,7 @@
     <div class="loading-card">
       <div class="loading-bar-head">
         <div class="window-dots"><span></span><span></span><span></span></div>
-        <div class="mono" id="loading-job-id" style="font-size:12px; color:var(--text-muted)">pipeline-job #loading...</div>
+        <div class="mono tap-expandable" id="loading-job-id" style="font-size:12px; color:var(--text-muted)">pipeline-job #loading...</div>
       </div>
       <div class="loading-body">
         <div class="pipeline-steps">
@@ -58,7 +67,7 @@
             <div class="step-icon">1</div>
             <div>
               <div style="font-weight:600">Resolving Repository Metadata</div>
-              <div class="mono" id="step-meta-desc" style="font-size:12px; color:var(--text-muted)">Validating GitHub API accessibility & size constraints...</div>
+              <div class="mono" id="step-meta-desc" style="font-size:12px; color:var(--text-muted)">Validating GitHub API accessibility &amp; size constraints...</div>
             </div>
           </div>
           <div class="p-step" id="step-clone">
@@ -71,8 +80,8 @@
           <div class="p-step" id="step-analyze">
             <div class="step-icon">3</div>
             <div>
-              <div style="font-weight:600">Running Pillar 02: Code Evaluation Engine</div>
-              <div class="mono" id="step-analyze-desc" style="font-size:12px; color:var(--text-muted)">Calculating cyclomatic complexity, maintainability & AST code smells...</div>
+              <div style="font-weight:600">Running Multi-Pillar Analysis</div>
+              <div class="mono" id="step-analyze-desc" style="font-size:12px; color:var(--text-muted)">Calculating cyclomatic complexity, security scans &amp; architecture...</div>
             </div>
           </div>
           <div class="p-step" id="step-verdict">
@@ -93,19 +102,20 @@
   <section id="view-report">
     <!-- Header -->
     <div class="report-header">
-      <div>
+      <div class="report-header-left">
         <div class="repo-title-row">
-          <h2 class="repo-title" id="report-repo-name">owner/repo</h2>
+          <h2 class="repo-title tap-expandable" id="report-repo-name" data-tooltip="Click to copy repo name">owner/repo</h2>
           <span class="repo-branch mono" id="report-branch">main</span>
           <span class="mono" id="report-stars" style="color:var(--text-muted); font-size:13px;">⭐ 0</span>
         </div>
         <div class="mono" id="report-meta-sub" style="color:var(--text-muted); font-size:13px; margin-top:6px;">Audited just now</div>
       </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <div class="report-actions">
         <button class="btn-outline" onclick="app.exportReport('markdown')">📥 Markdown</button>
         <button class="btn-outline" onclick="app.exportReport('json')">📥 JSON</button>
         <button class="btn-outline" onclick="app.copyShareLink()">🔗 Copy Link</button>
-        <button class="btn-outline" onclick="app.showView('input')">🔄 New Audit</button>
+        <button class="btn-outline" onclick="app.openMethodologyModal()">ℹ️ Methodology</button>
+        <button class="btn-outline btn-new-audit" onclick="app.showView('input')">🔄 New Audit</button>
       </div>
     </div>
 
@@ -120,7 +130,7 @@
       <div class="verdict-text">
         <div class="verdict-badge" id="report-verdict-badge">✓ PRODUCTION READY</div>
         <h3 id="report-verdict-title">Reviewer Executive Summary</h3>
-        <p class="verdict-summary" id="report-verdict-summary">Loading analysis summary...</p>
+        <p class="verdict-summary tap-expandable" id="report-verdict-summary">Loading analysis summary...</p>
       </div>
     </div>
 
@@ -129,15 +139,15 @@
       <div class="metric-card">
         <div class="metric-label">Total Code Size</div>
         <div class="metric-val mono" id="metric-loc">0 <span style="font-size:14px; font-weight:400; color:var(--text-muted)">LOC</span></div>
-        <div class="metric-sub" id="metric-files">0 source files</div>
+        <div class="metric-sub tap-expandable" id="metric-files">0 source files</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">Test-to-Source Ratio</div>
         <div class="metric-val mono" id="metric-test-ratio">0 : 1</div>
-        <div class="metric-sub" id="metric-test-sub">0 test files detected</div>
+        <div class="metric-sub tap-expandable" id="metric-test-sub">0 test files detected</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Avg Cyclomatic Complexity</div>
+        <div class="metric-label">Avg Complexity</div>
         <div class="metric-val mono" id="metric-complexity">0.0</div>
         <div class="metric-sub">Threshold: &lt; 10 (Low risk)</div>
       </div>
@@ -149,7 +159,10 @@
     </div>
 
     <!-- 5 Pillars Strip -->
-    <div class="pillars-section-title">5-Pillar Scorecard</div>
+    <div class="pillars-section-head">
+      <div class="pillars-section-title">5-Pillar Scorecard</div>
+      <span class="pillars-hint mono">Tap a pillar to inspect deep diagnostics</span>
+    </div>
     <div class="pillars-nav" id="pillars-nav-list">
       <!-- Injected by JS -->
     </div>
@@ -176,7 +189,7 @@
 
     <!-- Expandable Findings -->
     <div class="findings-container">
-      <div id="findings-section-header" style="font-weight:600; font-size:15px; color:var(--text-primary); margin-bottom:16px;">Findings for Code Evaluation</div>
+      <div id="findings-section-header" class="findings-header-title">Findings for Code Evaluation</div>
       <div class="findings-toolbar">
         <div class="filter-pills" id="severity-filters">
           <div class="f-pill active" data-severity="all" onclick="app.setFilter('all')">All (<span id="count-all">0</span>)</div>
@@ -194,6 +207,197 @@
   </section>
 
 </main>
+
+<!-- METHODOLOGY & ABOUT MODAL -->
+<div class="modal-overlay" id="methodology-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" style="display:none;" onclick="app.closeMethodologyModal(event)">
+  <div class="modal-dialog" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-title">
+        <span class="modal-badge mono">METHODOLOGY EXPLAINER</span>
+        <h2 id="modal-title">How RepoAudit Works</h2>
+      </div>
+      <button class="modal-close-btn" onclick="app.closeMethodologyModal()" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="modal-tabs">
+      <button class="modal-tab-btn active" data-tab="pillars" onclick="app.switchMethodologyTab('pillars')">The 5 Pillars</button>
+      <button class="modal-tab-btn" data-tab="verdict" onclick="app.switchMethodologyTab('verdict')">Verdict &amp; Scoring</button>
+      <button class="modal-tab-btn" data-tab="sources" onclick="app.switchMethodologyTab('sources')">Data Sources &amp; Tools</button>
+      <button class="modal-tab-btn" data-tab="scope" onclick="app.switchMethodologyTab('scope')">Scope &amp; Limits</button>
+    </div>
+
+    <div class="modal-content-area">
+      <!-- Tab 1: The 5 Pillars -->
+      <div class="tab-pane active" id="tab-pillars">
+        <p class="tab-intro">RepoAudit executes a multi-dimensional, automated analysis across five foundational software quality pillars:</p>
+        
+        <div class="pillar-explainer-grid">
+          <div class="explainer-card">
+            <div class="explainer-card-header">
+              <span class="pillar-tag mono">PILLAR 01</span>
+              <span class="explainer-badge purple mono">Gemini 2.5 / Groq</span>
+            </div>
+            <h3>Semantic Analysis &amp; Architecture</h3>
+            <p>Extracts repo purpose, architectural topology (MVC, modular, clean architecture), discovered key modules, detected design patterns, and end-to-end data flow execution lifecycles.</p>
+          </div>
+
+          <div class="explainer-card">
+            <div class="explainer-card-header">
+              <span class="pillar-tag mono">PILLAR 02</span>
+              <span class="explainer-badge blue mono">Static AST Engine</span>
+            </div>
+            <h3>Code Evaluation Engine</h3>
+            <p>Parses abstract syntax trees (AST) to measure total Lines of Code (LOC), cyclomatic complexity distributions, maintainability index (0–100), and test-to-source file ratios.</p>
+          </div>
+
+          <div class="explainer-card">
+            <div class="explainer-card-header">
+              <span class="pillar-tag mono">PILLAR 03</span>
+              <span class="explainer-badge red mono">Security Scanner</span>
+            </div>
+            <h3>Security &amp; Vulnerability Posture</h3>
+            <p>High-entropy regex scanning for hardcoded secrets (AWS keys, GitHub PATs, JWTs, private keys) and dependency auditing across package manifests (package.json, requirements.txt, go.mod) against known CVE patterns.</p>
+          </div>
+
+          <div class="explainer-card">
+            <div class="explainer-card-header">
+              <span class="pillar-tag mono">PILLAR 04</span>
+              <span class="explainer-badge green mono">Docs AST</span>
+            </div>
+            <h3>Documentation &amp; Onboarding</h3>
+            <p>Audits README completeness across essential sections (Overview, Installation, Usage, Configuration, Contributing, License) and calculates docstring coverage percentages across public functions and classes.</p>
+          </div>
+
+          <div class="explainer-card">
+            <div class="explainer-card-header">
+              <span class="pillar-tag mono">PILLAR 05</span>
+              <span class="explainer-badge amber mono">DevOps Engine</span>
+            </div>
+            <h3>Production Readiness &amp; DevOps</h3>
+            <p>Inspects repository infrastructure health: CI/CD workflow automation (GitHub Actions), container specs (Dockerfile, docker-compose), deterministic lockfiles, .gitignore hygiene, and structured logging.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Verdict & Scoring -->
+      <div class="tab-pane" id="tab-verdict" style="display:none;">
+        <p class="tab-intro">The overall score (0–100) and grade are computed using a weighted composite formula reflecting real-world engineering risk:</p>
+        
+        <div class="scoring-formula-box">
+          <div class="formula-row">
+            <div class="formula-pillar">Pillar 02 · Code Evaluation</div>
+            <div class="formula-bar-container"><div class="formula-bar" style="width: 30%; background: var(--blue);"></div></div>
+            <div class="formula-weight mono">30%</div>
+          </div>
+          <div class="formula-row">
+            <div class="formula-pillar">Pillar 03 · Security &amp; Secrets</div>
+            <div class="formula-bar-container"><div class="formula-bar" style="width: 25%; background: var(--red);"></div></div>
+            <div class="formula-weight mono">25%</div>
+          </div>
+          <div class="formula-row">
+            <div class="formula-pillar">Pillar 01 · Semantic Architecture</div>
+            <div class="formula-bar-container"><div class="formula-bar" style="width: 20%; background: var(--purple);"></div></div>
+            <div class="formula-weight mono">20%</div>
+          </div>
+          <div class="formula-row">
+            <div class="formula-pillar">Pillar 05 · Production Readiness</div>
+            <div class="formula-bar-container"><div class="formula-bar" style="width: 15%; background: var(--amber);"></div></div>
+            <div class="formula-weight mono">15%</div>
+          </div>
+          <div class="formula-row">
+            <div class="formula-pillar">Pillar 04 · Documentation Quality</div>
+            <div class="formula-bar-container"><div class="formula-bar" style="width: 10%; background: var(--green);"></div></div>
+            <div class="formula-weight mono">10%</div>
+          </div>
+        </div>
+
+        <h4 style="margin: 24px 0 12px 0; font-size:14px; color:var(--text-primary);">Overall Verdict Bands</h4>
+        <div class="grades-grid">
+          <div class="grade-card grade-a">
+            <div class="grade-badge mono">GRADE A (85–100)</div>
+            <div class="grade-status">✓ PRODUCTION READY</div>
+            <p>Strong code maintainability, clean security posture, high doc quality, and active CI/CD automation.</p>
+          </div>
+          <div class="grade-card grade-b">
+            <div class="grade-badge mono">GRADE B (65–84)</div>
+            <div class="grade-status">⚠ NEEDS REFACTORING</div>
+            <p>Functional but carries elevated complexity, incomplete docs, or missing DevOps practices.</p>
+          </div>
+          <div class="grade-card grade-c">
+            <div class="grade-badge mono">GRADE C/F (&lt;65)</div>
+            <div class="grade-status">✕ HIGH RISK</div>
+            <p>Exposed secrets, high complexity bottlenecks, absent tests, or critical vulnerabilities.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Data Sources & Tools -->
+      <div class="tab-pane" id="tab-sources" style="display:none;">
+        <p class="tab-intro">RepoAudit combines deterministic local static analysis with state-of-the-art inference engines:</p>
+        
+        <div class="sources-list">
+          <div class="source-item">
+            <div class="source-icon mono">01</div>
+            <div class="source-details">
+              <h4>GitHub REST API v3</h4>
+              <p>Fetches repository metadata, star counts, fork counts, default branch, primary language, and file tree hierarchy without exposing user credentials.</p>
+            </div>
+          </div>
+          <div class="source-item">
+            <div class="source-icon mono">02</div>
+            <div class="source-details">
+              <h4>Ephemeral Sandboxed Shallow Clone</h4>
+              <p>Performs a secure <code>git clone --depth 1</code> into an ephemeral workspace to inspect ASTs and config files before automated cleanup.</p>
+            </div>
+          </div>
+          <div class="source-item">
+            <div class="source-icon mono">03</div>
+            <div class="source-details">
+              <h4>Static AST &amp; Metric Analyzers</h4>
+              <p>Radon and Python/JS AST tree parsers calculate cyclomatic complexity, Maintainability Index (MI), Lines of Code, and docstring coverage deterministically.</p>
+            </div>
+          </div>
+          <div class="source-item">
+            <div class="source-icon mono">04</div>
+            <div class="source-details">
+              <h4>LLM Inference (Google Gemini 2.5 Flash / Groq)</h4>
+              <p>Synthesizes high-level architectural purpose, extracts module topology, and identifies design patterns from file structure and key entrypoint signatures.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Scope & Limitations -->
+      <div class="tab-pane" id="tab-scope" style="display:none;">
+        <p class="tab-intro">Understand what RepoAudit is designed to accomplish — and what requires human review:</p>
+        
+        <div class="scope-comparison-grid">
+          <div class="scope-card does">
+            <h4 style="color:var(--green); margin-bottom:12px;">✓ What RepoAudit Does</h4>
+            <ul>
+              <li>Provides rapid, evidence-based triage for non-author reviewers</li>
+              <li>Identifies immediate red flags: exposed secrets, complexity hotspots, missing tests</li>
+              <li>Maps high-level architecture for fast code orientation and due diligence</li>
+              <li>Delivers reproducible report cards with JSON and Markdown exports</li>
+            </ul>
+          </div>
+          <div class="scope-card doesnt">
+            <h4 style="color:var(--amber); margin-bottom:12px;">✕ What RepoAudit Does NOT Do</h4>
+            <ul>
+              <li>Does not execute dynamic runtime penetration testing or fuzzing</li>
+              <li>Does not replace exhaustive manual security audits by security engineers</li>
+              <li>Does not execute untrusted build scripts or run user test suites</li>
+              <li>Does not store private repo code beyond the ephemeral analysis run</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FLOATING TOOLTIP ELEMENT FOR HOVER-TO-REVEAL -->
+<div id="global-tooltip" class="global-tooltip" style="display:none;"></div>
 
 <script src="/static/app.js"></script>
 </body>
