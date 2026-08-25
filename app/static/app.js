@@ -1,7 +1,9 @@
 class RepoAuditApp {
   constructor() {
     this.currentAudit = null;
-    this.pollInterval = null;
+    this.pollTimeout = null;
+    this.activePollId = null;
+    this.currentView = null;
     this.activeFilter = 'all';
     this.activePillar = 'code_eval';
     this.scopeFilter = 'active'; // 'active' or 'all_pillars'
@@ -142,16 +144,29 @@ class RepoAuditApp {
   /* ==========================================================================
      VIEW NAVIGATION & INGESTION
      ========================================================================== */
-  showView(viewName) {
+  stopPolling() {
+    if (this.pollTimeout) {
+      clearTimeout(this.pollTimeout);
+      this.pollTimeout = null;
+    }
+    this.activePollId = null;
+  }
+
+  showView(viewName, { resetScroll = true } = {}) {
+    const isViewChange = this.currentView !== viewName;
+    this.currentView = viewName;
+
     document.getElementById('view-input').style.display = viewName === 'input' ? 'block' : 'none';
     document.getElementById('view-loading').style.display = viewName === 'loading' ? 'block' : 'none';
     document.getElementById('view-report').style.display = viewName === 'report' ? 'block' : 'none';
 
     if (viewName === 'input') {
       window.history.pushState({}, '', '/');
-      if (this.pollInterval) clearInterval(this.pollInterval);
+      this.stopPolling();
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (isViewChange && resetScroll) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   setSampleRepo(url) {
@@ -199,6 +214,9 @@ class RepoAuditApp {
   }
 
   startPolling(auditId) {
+    this.stopPolling();
+    this.activePollId = auditId;
+
     this.showView('loading');
     const jobEl = document.getElementById('loading-job-id');
     jobEl.innerText = `pipeline-job #${auditId}`;
@@ -207,34 +225,52 @@ class RepoAuditApp {
 
     this.updateLoadingSteps('QUEUED');
 
-    if (this.pollInterval) clearInterval(this.pollInterval);
+    const poll = async () => {
+      if (this.activePollId !== auditId) return;
 
-    this.pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`/api/audits/${auditId}`);
-        if (!response.ok) return;
+        if (this.activePollId !== auditId) return;
+
+        if (!response.ok) {
+          this.pollTimeout = setTimeout(poll, 1500);
+          return;
+        }
 
         const data = await response.json();
+        if (this.activePollId !== auditId) return;
+
         this.currentAudit = data;
         this.updateLoadingSteps(data.status, data.logs);
 
         if (data.status === 'COMPLETED') {
-          clearInterval(this.pollInterval);
+          this.stopPolling();
           window.history.pushState({}, '', `/report/${auditId}`);
           this.renderReport(data);
+          return;
         } else if (data.status === 'FAILED') {
-          clearInterval(this.pollInterval);
+          this.stopPolling();
           const errEl = document.getElementById('loading-error');
           errEl.innerText = `Audit failed: ${data.error_message || 'Unknown analysis error'}`;
           errEl.style.display = 'block';
+          return;
         }
+
+        // Only schedule next poll tick after current request has completed
+        this.pollTimeout = setTimeout(poll, 1500);
       } catch (e) {
         console.error('Polling error:', e);
+        if (this.activePollId === auditId) {
+          this.pollTimeout = setTimeout(poll, 1500);
+        }
       }
-    }, 1500);
+    };
+
+    this.pollTimeout = setTimeout(poll, 1500);
   }
 
   async loadAudit(auditId) {
+    this.stopPolling();
     this.showView('loading');
     const jobEl = document.getElementById('loading-job-id');
     jobEl.innerText = `pipeline-job #${auditId}`;
